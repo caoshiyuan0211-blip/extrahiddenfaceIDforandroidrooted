@@ -17,50 +17,52 @@ class LockActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        if (Build.VERSION.SDK_INT >= 27) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        }
+        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_SECURE
         )
-
+        if (Build.VERSION.SDK_INT >= 31) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.apply { blurBehindRadius = 60 }
+            window.setBackgroundBlurRadius(60)
+        }
+        overridePendingTransition(0, 0)
         setContentView(R.layout.activity_lock)
         hideSystemBars()
-
-        // if somehow not locked, just leave
         if (!LockState.isLocked(this)) { finish(); return }
 
         val pwd = findViewById<EditText>(R.id.lockPwd)
         val hint = findViewById<TextView>(R.id.lockHint)
         findViewById<Button>(R.id.btnUnlock).setOnClickListener {
-            val input = pwd.text.toString()
-            if (LockState.checkPassword(this, input)) {
+            if (LockState.checkPassword(this, pwd.text.toString())) {
                 LockState.setLocked(this, false)
+                LockState.lockVisible = false
                 Toast.makeText(this, "已解锁", Toast.LENGTH_SHORT).show()
                 finishAffinity()
             } else {
-                pwd.setText("")
-                hint.text = "密码错误，请重试"
+                pwd.setText(""); hint.text = "密码错误，请重试"
             }
         }
-
-        // back does nothing
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() { /* swallow */ }
+            override fun handleOnBackPressed() {}
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        LockState.lockVisible = true
+        hideSystemBars()
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // home / recents pressed: if still locked, slam back to front
         if (LockState.isLocked(this)) RootUtil.forceLockToFront()
     }
 
     override fun onPause() {
         super.onPause()
+        LockState.lockVisible = false
         if (LockState.isLocked(this)) RootUtil.forceLockToFront()
     }
 
@@ -73,7 +75,6 @@ class LockActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val c = WindowInsetsControllerCompat(window, window.decorView)
         c.hide(WindowInsetsCompat.Type.systemBars())
-        c.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }

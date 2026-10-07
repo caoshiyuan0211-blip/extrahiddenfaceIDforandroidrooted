@@ -49,6 +49,8 @@ class MonitorService : LifecycleService() {
     @Volatile private var checking = false
     @Volatile private var busy = false
     @Volatile private var touchCount = 0
+    @Volatile private var trusted = false
+    @Volatile private var screenOffAt = 0L
     private val checkMatched = AtomicBoolean(false)
     private var checkTimeout: Job? = null
     private var watchdog: Job? = null
@@ -93,20 +95,22 @@ class MonitorService : LifecycleService() {
         return START_STICKY
     }
 
-    // ---------------- screen ----------------
     private fun onScreenOn() {
         if (LockState.isLocked(this)) { RootUtil.forceLockToFront(); return }
+        val off = System.currentTimeMillis() - screenOffAt
+        if (trusted && off < LockState.REARM_AFTER_OFF_MS) return
+        trusted = false
         arm()
     }
 
     private fun onScreenOff() {
+        screenOffAt = System.currentTimeMillis()
         disarm()
     }
 
     private fun arm() { armed = true; touchCount = 0 }
     private fun disarm() { armed = false }
 
-    // ---------------- touch ----------------
     private fun onTouch() {
         if (LockState.isLocked(this)) return
         if (!armed || checking) return
@@ -117,10 +121,9 @@ class MonitorService : LifecycleService() {
         }
     }
 
-    // ---------------- face check ----------------
     private fun startFaceCheck() {
         if (checking) return
-        val e = LockState.loadFace(this) ?: return   // not enrolled -> skip
+        val e = LockState.loadFace(this) ?: return
         enrolled = e
         if (recognizer == null) {
             try { recognizer = FaceRecognizer(this) } catch (ex: Exception) { return }
@@ -187,27 +190,27 @@ class MonitorService : LifecycleService() {
         main.post {
             try { cameraProvider?.unbindAll() } catch (_: Exception) {}
         }
-        if (!checkMatched.get() && LockState.LOCK_ON_NO_MATCH) {
+        if (checkMatched.get()) {
+            trusted = true
+        } else if (LockState.LOCK_ON_NO_MATCH) {
             enforceLock()
         }
     }
 
-    // ---------------- lock enforcement ----------------
     private fun enforceLock() {
         LockState.setLocked(this, true)
+        trusted = false
         RootUtil.forceLockToFront()
         if (watchdog?.isActive == true) return
         watchdog = scope.launch {
             while (LockState.isLocked(this@MonitorService)) {
-                RootUtil.forceLockToFront()
-                delay(600)
+                if (!LockState.lockVisible) RootUtil.forceLockToFront()
+                delay(700)
             }
-            // unlocked
-            arm()
+            trusted = true
         }
     }
 
-    // ---------------- foreground ----------------
     private fun startFg() {
         val n: Notification = NotificationCompat.Builder(this, CH_ID)
             .setContentTitle("系统服务运行中")

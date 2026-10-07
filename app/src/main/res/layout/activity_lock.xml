@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#000000"
+    android:background="#99000000"
     android:padding="32dp">
 
     <TextView
@@ -13,16 +13,20 @@
         android:text="已锁定"
         android:textColor="#FFFFFF"
         android:textSize="30sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowRadius="8" />
 
     <TextView
         android:id="@+id/lockHint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="请输入密码解锁"
-        android:textColor="#BBBBBB"
+        android:textColor="#DDDDDD"
         android:textSize="15sp"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:shadowColor="#000000"
+        android:shadowRadius="8" />
 
     <EditText
         android:id="@+id/lockPwd"
@@ -31,7 +35,7 @@
         android:layout_marginTop="28dp"
         android:gravity="center"
         android:textColor="#FFFFFF"
-        android:textColorHint="#777777"
+        android:textColorHint="#AAAAAA"
         android:hint="密码"
         android:inputType="numberPassword" />
 

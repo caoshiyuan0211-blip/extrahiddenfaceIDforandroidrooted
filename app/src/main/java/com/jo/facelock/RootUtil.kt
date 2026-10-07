@@ -2,50 +2,52 @@ package com.jo.facelock
 
 import android.util.Log
 import java.io.DataOutputStream
+import kotlin.concurrent.thread
 
-/**
- * Thin wrapper over `su`. Used to:
- *  - read global touch events (getevent) regardless of which app is on top
- *  - force the lock screen to the front even from background (bypasses
- *    Android's background-activity-start restrictions)
- *  - collapse the notification shade so it can't be pulled down while locked
- */
 object RootUtil {
     private const val TAG = "FaceLock/Root"
+    private var shell: Process? = null
+    private var os: DataOutputStream? = null
 
-    /** Run several shell lines as root, fire-and-forget. Returns true if su launched. */
-    fun runAsRoot(vararg cmds: String): Boolean {
+    @Synchronized
+    private fun ensure(): DataOutputStream? {
+        val cur = os
+        if (cur != null && shell?.isAlive == true) return cur
         return try {
             val p = Runtime.getRuntime().exec("su")
-            DataOutputStream(p.outputStream).use { os ->
-                for (c in cmds) {
-                    os.writeBytes(c + "\n")
-                }
-                os.writeBytes("exit\n")
-                os.flush()
-            }
-            p.waitFor()
-            true
+            shell = p
+            thread(isDaemon = true) { try { p.inputStream.bufferedReader().forEachLine { } } catch (_: Exception) {} }
+            thread(isDaemon = true) { try { p.errorStream.bufferedReader().forEachLine { } } catch (_: Exception) {} }
+            DataOutputStream(p.outputStream).also { os = it }
         } catch (e: Exception) {
-            Log.e(TAG, "su failed: ${e.message}")
-            false
+            Log.e(TAG, "su start failed: ${e.message}"); shell = null; os = null; null
         }
     }
 
-    /** Bring LockActivity to the foreground via root. Works even from background. */
+    @Synchronized
+    fun exec(vararg cmds: String): Boolean {
+        var o = ensure() ?: return false
+        try {
+            for (c in cmds) o.writeBytes(c + "\n")
+            o.flush(); return true
+        } catch (e: Exception) {
+            try { shell?.destroy() } catch (_: Exception) {}
+            shell = null; os = null
+            o = ensure() ?: return false
+            return try { for (c in cmds) o.writeBytes(c + "\n"); o.flush(); true } catch (_: Exception) { false }
+        }
+    }
+
+    fun runAsRoot(vararg cmds: String): Boolean = exec(*cmds)
+
     fun forceLockToFront() {
-        runAsRoot(
-            "am start -n com.jo.facelock/.LockActivity --activity-single-top",
-            "cmd statusbar collapse"
+        exec(
+            "am start -n com.jo.facelock/.LockActivity --activity-single-top >/dev/null 2>&1",
+            "cmd statusbar collapse >/dev/null 2>&1"
         )
     }
 
-    fun available(): Boolean {
-        return try {
-            val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            p.waitFor() == 0
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun available(): Boolean = try {
+        Runtime.getRuntime().exec(arrayOf("su", "-c", "id")).waitFor() == 0
+    } catch (e: Exception) { false }
 }
