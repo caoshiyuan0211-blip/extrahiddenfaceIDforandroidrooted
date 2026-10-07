@@ -26,8 +26,9 @@ class TouchMonitor(private val onTouchDown: () -> Unit) {
                 val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "getevent -l"))
                 process = p
                 val reader = BufferedReader(InputStreamReader(p.inputStream))
-                var line: String?
-                while (running && reader.readLine().also { line = it } != null) {
+                
+                while (running) {
+                    val line = reader.readLine() ?: break
                     val s = line ?: continue
                     when {
                         s.contains("BTN_TOUCH") && s.contains("DOWN") -> {
