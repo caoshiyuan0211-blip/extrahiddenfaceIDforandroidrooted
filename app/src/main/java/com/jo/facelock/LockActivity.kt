@@ -37,7 +37,7 @@ class LockActivity : AppCompatActivity() {
             if (LockState.checkPassword(this, pwd.text.toString())) {
                 LockState.setLocked(this, false)
                 LockState.lockVisible = false
-                try { stopLockTask() } catch (_: Exception) {}
+                RootUtil.unpinLock()
                 Toast.makeText(this, "已解锁", Toast.LENGTH_SHORT).show()
                 finishAffinity()
             } else {

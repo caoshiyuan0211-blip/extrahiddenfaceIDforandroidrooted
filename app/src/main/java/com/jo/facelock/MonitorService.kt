@@ -200,7 +200,7 @@ class MonitorService : LifecycleService() {
     private fun enforceLock() {
         LockState.setLocked(this, true)
         trusted = false
-        RootUtil.lockdownOn()
+        
         RootUtil.forceLockToFront()
         if (watchdog?.isActive == true) return
         watchdog = scope.launch {
@@ -208,7 +208,7 @@ class MonitorService : LifecycleService() {
                 if (!LockState.lockVisible) RootUtil.forceLockToFront()
                 delay(700)
             }
-            RootUtil.lockdownOff()
+            RootUtil.unpinLock()
             trusted = true
         }
     }
