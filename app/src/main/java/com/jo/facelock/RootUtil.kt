@@ -50,9 +50,14 @@ object RootUtil {
     /** Pin the LockActivity's task so swipe-up / back / recents can't exit. */
     fun pinLock() {
         val d = "\$"   // literal dollar for the shell, not Kotlin
+        Log.i(TAG, "pinLock called")
+        exec("settings put secure lock_task_packages com.jo.facelock >/dev/null 2>&1")
+        // retry up to 5 times: task may not be registered in dumpsys yet
         exec(
-            "settings put secure lock_task_packages com.jo.facelock >/dev/null 2>&1",
-            "TID=${d}(dumpsys activity activities | grep -oE 'com.jo.facelock/.LockActivity t[0-9]+' | grep -oE 't[0-9]+' | tr -d t | head -1); [ -n \"${d}TID\" ] && am task lock ${d}TID >/dev/null 2>&1",
+            "for i in 1 2 3 4 5; do " +
+                "TID=${d}(dumpsys activity activities | grep -oE 'com.jo.facelock/.LockActivity t[0-9]+' | grep -oE '[0-9]+' | head -1); " +
+                "if [ -n \"${d}TID\" ]; then log -t FaceLock/Root \"pin tid=${d}TID\"; am task lock ${d}TID; break; fi; " +
+                "sleep 0.3; done >/dev/null 2>&1",
             "cmd statusbar collapse >/dev/null 2>&1"
         )
     }
