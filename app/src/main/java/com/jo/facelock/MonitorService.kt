@@ -97,8 +97,6 @@ class MonitorService : LifecycleService() {
 
     private fun onScreenOn() {
         if (LockState.isLocked(this)) { RootUtil.forceLockToFront(); return }
-        val off = System.currentTimeMillis() - screenOffAt
-        if (trusted && off < LockState.REARM_AFTER_OFF_MS) return
         trusted = false
         arm()
     }
@@ -202,6 +200,7 @@ class MonitorService : LifecycleService() {
     private fun enforceLock() {
         LockState.setLocked(this, true)
         trusted = false
+        RootUtil.lockdownOn()
         RootUtil.forceLockToFront()
         if (watchdog?.isActive == true) return
         watchdog = scope.launch {
@@ -209,6 +208,7 @@ class MonitorService : LifecycleService() {
                 if (!LockState.lockVisible) RootUtil.forceLockToFront()
                 delay(700)
             }
+            RootUtil.lockdownOff()
             trusted = true
         }
     }
