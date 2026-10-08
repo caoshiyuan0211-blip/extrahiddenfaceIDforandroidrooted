@@ -47,18 +47,12 @@ object RootUtil {
         )
     }
 
-    fun available(): Boolean = try {
-        Runtime.getRuntime().exec(arrayOf("su", "-c", "id")).waitFor() == 0
-    } catch (e: Exception) { false }
-
-    /** Disable escape routes while locked (recents/splitscreen/gestures/statusbar). */
     /** Pin the LockActivity's task so swipe-up / back / recents can't exit. */
     fun pinLock() {
+        val d = "\$"   // literal dollar for the shell, not Kotlin
         exec(
             "settings put secure lock_task_packages com.jo.facelock >/dev/null 2>&1",
-            // find the task id of our LockActivity and lock it
-            "TID=$(dumpsys activity activities | grep -oE 'com.jo.facelock/.LockActivity t[0-9]+' | grep -oE 't[0-9]+' | tr -d t | head -1); " +
-                "[ -n \"$TID\" ] && am task lock $TID >/dev/null 2>&1",
+            "TID=${d}(dumpsys activity activities | grep -oE 'com.jo.facelock/.LockActivity t[0-9]+' | grep -oE 't[0-9]+' | tr -d t | head -1); [ -n \"${d}TID\" ] && am task lock ${d}TID >/dev/null 2>&1",
             "cmd statusbar collapse >/dev/null 2>&1"
         )
     }
@@ -66,4 +60,8 @@ object RootUtil {
     fun unpinLock() {
         exec("am task lock stop >/dev/null 2>&1")
     }
+
+    fun available(): Boolean = try {
+        Runtime.getRuntime().exec(arrayOf("su", "-c", "id")).waitFor() == 0
+    } catch (e: Exception) { false }
 }
