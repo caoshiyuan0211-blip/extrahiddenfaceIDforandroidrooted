@@ -17,17 +17,16 @@ class LockActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
+        if (Build.VERSION.SDK_INT >= 31) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.apply { blurBehindRadius = 60 }
+        }
         if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_SECURE
         )
-        if (Build.VERSION.SDK_INT >= 31) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            window.attributes = window.attributes.apply { blurBehindRadius = 60 }
-            window.setBackgroundBlurRadius(60)
-        }
-        overridePendingTransition(0, 0)
         setContentView(R.layout.activity_lock)
         hideSystemBars()
         if (!LockState.isLocked(this)) { finish(); return }
