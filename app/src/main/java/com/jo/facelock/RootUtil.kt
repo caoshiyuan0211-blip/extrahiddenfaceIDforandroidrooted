@@ -54,14 +54,15 @@ object RootUtil {
     /** Disable escape routes while locked (recents/splitscreen/gestures/statusbar). */
     fun lockdownOn() {
         exec(
+            "settings put secure lock_task_packages com.jo.facelock >/dev/null 2>&1",
             "settings put global policy_control immersive.full=com.jo.facelock >/dev/null 2>&1",
-            "cmd statusbar collapse >/dev/null 2>&1",
-            "wm dismiss-keyguard >/dev/null 2>&1"
+            "cmd statusbar collapse >/dev/null 2>&1"
         )
     }
 
     fun lockdownOff() {
         exec(
+            "settings put secure lock_task_packages '' >/dev/null 2>&1",
             "settings put global policy_control null* >/dev/null 2>&1"
         )
     }

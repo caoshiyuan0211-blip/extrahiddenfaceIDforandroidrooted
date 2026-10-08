@@ -37,6 +37,7 @@ class LockActivity : AppCompatActivity() {
             if (LockState.checkPassword(this, pwd.text.toString())) {
                 LockState.setLocked(this, false)
                 LockState.lockVisible = false
+                try { stopLockTask() } catch (_: Exception) {}
                 Toast.makeText(this, "已解锁", Toast.LENGTH_SHORT).show()
                 finishAffinity()
             } else {
@@ -52,6 +53,7 @@ class LockActivity : AppCompatActivity() {
         super.onResume()
         LockState.lockVisible = true
         hideSystemBars()
+        try { startLockTask() } catch (_: Exception) {}
     }
 
     override fun onUserLeaveHint() {
