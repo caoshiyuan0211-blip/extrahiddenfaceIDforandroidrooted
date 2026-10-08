@@ -115,8 +115,10 @@ class MonitorService : LifecycleService() {
         if (LockState.isLocked(this)) return
         if (!armed || checking) return
         touchCount++
+        Log.d(TAG, "touchCount=$touchCount armed=$armed trusted=$trusted")
         if (touchCount >= LockState.TRIGGER_TOUCH_COUNT) {
             disarm()
+            Log.i(TAG, "trigger face check")
             startFaceCheck()
         }
     }
